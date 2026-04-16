@@ -6,11 +6,8 @@ export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace("/auth/login"); // 🔥 login primero
-    }, 200);
-
-    return () => clearTimeout(timer);
+    // 🔥 SIEMPRE manda a login
+    router.replace("/auth/login");
   }, []);
 
   return (

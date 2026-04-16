@@ -1,6 +1,6 @@
-import { View, Text, Image, ScrollView, TouchableOpacity, ViewStyle, TextStyle, ImageStyle } from 'react-native';
-import { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Image, ImageStyle, ScrollView, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 export default function Home() {
   const [menuVisible, setMenuVisible] = useState(false);

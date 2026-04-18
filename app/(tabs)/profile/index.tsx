@@ -1,167 +1,199 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { supabase } from '@/lib/supabase';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+    Image,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
-export default function PetProfile() {
+export default function Profile() {
+
+  const [user, setUser] = useState<any>(null);
+  const [pets, setPets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    init();
+  }, []);
+
+  const init = async () => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      setUser(userData.user);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentUser = sessionData.session?.user;
+
+      if (currentUser) {
+        const { data: petsData } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('owner_id', currentUser.id);
+
+        setPets(petsData || []);
+      }
+
+    } catch (error) {
+      console.log("ERROR:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🔄 LOADING
+  if (loading) {
+    return (
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#0f2a44'
+      }}>
+        <Text style={{ color: 'white' }}>Cargando perfil...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#0f2a44' }}>
 
-      {/* HEADER */}
-      <View style={styles.header}>
-        <MaterialIcons name="arrow-back" size={28} color="white" />
+      {/* 🔵 HEADER */}
+      <View style={{
+        alignItems: 'center',
+        padding: 20,
+        backgroundColor: '#1e3a5f',
+        borderBottomLeftRadius: 25,
+        borderBottomRightRadius: 25
+      }}>
+        <Image
+          source={require('../../logo.png')}
+          style={{ width: 80, height: 80, borderRadius: 40 }}
+        />
 
-        {/* ✅ RUTA CORREGIDA */}
-        <Image source={require("../../logo.png")} style={styles.logo} />
+        <Text style={{
+          color: 'white',
+          fontSize: 26,
+          marginTop: 10
+        }}>
+          Mi Perfil
+        </Text>
       </View>
 
-      {/* NOMBRE */}
-      <View style={styles.nameBox}>
-        <Text style={styles.name}>Nombre_de_Mascota</Text>
+      {/* 👤 USUARIO */}
+      <View style={{
+        backgroundColor: '#e5e7eb',
+        margin: 20,
+        padding: 15,
+        borderRadius: 20
+      }}>
+        <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>
+          {user?.email || "Sin usuario"}
+        </Text>
       </View>
 
-      {/* FOTO + BOTONES */}
-      <View style={styles.topSection}>
+      {/* 🐶 MASCOTAS */}
+      <Text style={{ color: 'white', marginLeft: 20 }}>
+        Tus mascotas:
+      </Text>
 
-        <View style={styles.imageBox}>
-          <Image
-            source={{ uri: "https://placedog.net/400" }}
-            style={styles.image}
-          />
-        </View>
+      {pets.length === 0 && (
+        <Text style={{ color: 'white', marginLeft: 20 }}>
+          No tienes mascotas
+        </Text>
+      )}
 
-        <View>
-          <TouchableOpacity style={styles.btn}>
-            <MaterialIcons name="edit" size={20} color="white" />
-            <Text style={styles.btnText}>Editar perfil</Text>
-          </TouchableOpacity>
+      {pets.map((pet) => (
+        <TouchableOpacity
+          key={pet.id}
+          onPress={() => router.push(`/profile/PetProfile?id=${pet.id}`)}
+          style={{
+            backgroundColor: '#2c4a6e',
+            marginHorizontal: 15,
+            marginTop: 10,
+            padding: 15,
+            borderRadius: 20
+          }}
+        >
 
-          <TouchableOpacity style={styles.btnDelete}>
-            <MaterialIcons name="close" size={20} color="white" />
-            <Text style={styles.btnText}>Eliminar perfil</Text>
-          </TouchableOpacity>
-        </View>
+          {/* 🐕 IMAGEN REAL */}
+          {pet.image_url ? (
+            <Image
+              source={{ uri: pet.image_url }}
+              style={{
+                width: 120,
+                height: 120,
+                borderRadius: 15,
+                marginBottom: 8
+              }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{
+              width: 120,
+              height: 120,
+              borderRadius: 15,
+              backgroundColor: '#1e3a5f',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 8
+            }}>
+              <Text style={{ color: 'white' }}>🐶</Text>
+            </View>
+          )}
 
-      </View>
+          <Text style={{
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: 16
+          }}>
+            {pet.name}
+          </Text>
 
-      {/* DATOS */}
-      <Text style={styles.label}>Datos de tu mascota:</Text>
+          <Text style={{ color: '#cbd5f5' }}>
+            {pet.sex}
+          </Text>
 
-      <View style={styles.dataRow}>
+        </TouchableOpacity>
+      ))}
 
-        <View style={styles.dataBox}>
-          <MaterialIcons name="pets" size={30} color="#0f2a44" />
-          <Text>Edad:</Text>
-          <Text style={styles.bold}>5 años</Text>
-        </View>
+      {/* ➕ AGREGAR */}
+      <TouchableOpacity
+        onPress={() => router.push('/(tabs)/pets/CreatePet')}
+        style={{
+          backgroundColor: '#1e3a5f',
+          margin: 20,
+          padding: 15,
+          borderRadius: 20,
+          alignItems: 'center'
+        }}
+      >
+        <Text style={{ color: 'white', fontWeight: 'bold' }}>
+          + Agregar mascota
+        </Text>
+      </TouchableOpacity>
 
-        <View style={styles.dataBox}>
-          <MaterialIcons name="scale" size={30} color="#0f2a44" />
-          <Text>Peso:</Text>
-          <Text style={styles.bold}>34 kg</Text>
-        </View>
+      {/* 🚪 LOGOUT */}
+      <TouchableOpacity
+        onPress={async () => {
+          await supabase.auth.signOut();
+          router.replace('/auth/login');
+        }}
+        style={{
+          backgroundColor: '#9ca3af',
+          marginHorizontal: 20,
+          padding: 15,
+          borderRadius: 20,
+          alignItems: 'center'
+        }}
+      >
+        <Text style={{ fontWeight: 'bold' }}>
+          Cerrar sesión
+        </Text>
+      </TouchableOpacity>
 
-        <View style={styles.dataBox}>
-          <MaterialIcons name="medical-services" size={30} color="#0f2a44" />
-          <Text style={styles.bold}>Vacunas:</Text>
-          <Text>- Rabia{"\n"}- Parvo</Text>
-        </View>
-
-      </View>
-
-    </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0f2a44",
-    padding: 20
-  },
-
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-
-  logo: {
-    width: 60,
-    height: 60
-  },
-
-  nameBox: {
-    backgroundColor: "#d1d5db",
-    padding: 12,
-    borderRadius: 15,
-    marginVertical: 15
-  },
-
-  name: {
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "bold"
-  },
-
-  topSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20
-  },
-
-  imageBox: {
-    borderWidth: 1,
-    borderColor: "#94a3b8",
-    borderRadius: 12,
-    padding: 10
-  },
-
-  image: {
-    width: 150,
-    height: 150
-  },
-
-  btn: {
-    backgroundColor: "#1e3a5f",
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5
-  },
-
-  btnDelete: {
-    backgroundColor: "#475569",
-    padding: 10,
-    borderRadius: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5
-  },
-
-  btnText: {
-    color: "white"
-  },
-
-  label: {
-    color: "white",
-    marginBottom: 10
-  },
-
-  dataRow: {
-    flexDirection: "row",
-    justifyContent: "space-between"
-  },
-
-  dataBox: {
-    backgroundColor: "#c7d7e8",
-    padding: 10,
-    borderRadius: 12,
-    width: "30%",
-    alignItems: "center"
-  },
-
-  bold: {
-    fontWeight: "bold"
-  }
-});

@@ -1,9 +1,29 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Image, ImageStyle, ScrollView, Text, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  Image,
+  ImageStyle,
+  ScrollView,
+  Text,
+  TextStyle,
+  TouchableOpacity,
+  View,
+  ViewStyle
+} from 'react-native';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    getUser();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -52,7 +72,7 @@ export default function Home() {
           marginVertical: 10
         }}>
           <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>
-            👤 Nombre_Usuario1
+            👤 {user?.email || "Cargando..."}
           </Text>
         </View>
 
@@ -62,7 +82,6 @@ export default function Home() {
         </Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
-
           <View style={petCard}>
             <Image source={{ uri: 'https://placedog.net/500' }} style={petImage} />
             <Text style={petName}>Charlie</Text>
@@ -74,7 +93,6 @@ export default function Home() {
             <Text style={petName}>Roxy</Text>
             <Text style={petDesc}>Gato</Text>
           </View>
-
         </ScrollView>
 
         {/* VETERINARIAS */}
@@ -83,7 +101,6 @@ export default function Home() {
         </Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
-
           <View style={vetCard}>
             <Text style={vetTitle}>Animal Pet Care</Text>
             <Text style={vetInfo}>⭐ 4.2 - 1.3 km</Text>
@@ -93,12 +110,11 @@ export default function Home() {
               <Tag text="Dientes" />
             </View>
           </View>
-
         </ScrollView>
 
       </ScrollView>
 
-      {/* MENÚ LATERAL */}
+      {/* MENÚ */}
       {menuVisible && (
         <View style={{
           position: 'absolute',
@@ -118,10 +134,46 @@ export default function Home() {
             Menu
           </Text>
 
-          <MenuItem icon="event" text="Agenda una cita" />
-          <MenuItem icon="pets" text="Registra una mascota" />
-          <MenuItem icon="person" text="Ver perfil" />
-          <MenuItem icon="logout" text="Cerrar sesión" />
+          {/* 🔥 BOTONES FUNCIONALES CORREGIDOS */}
+          <MenuItem
+            icon="event"
+            text="Agenda una cita"
+            route="/(tabs)/quotes/CreateQuote"
+            closeMenu={() => setMenuVisible(false)}
+          />
+
+          <MenuItem
+            icon="pets"
+            text="Registra una mascota"
+            route="/(tabs)/pets/CreatePet"
+            closeMenu={() => setMenuVisible(false)}
+          />
+
+          <MenuItem
+            icon="person"
+            text="Ver perfil"
+            route="/(tabs)/profile"
+            
+            closeMenu={() => setMenuVisible(false)}
+          />
+
+          {/* 🔥 CERRAR SESIÓN */}
+          <TouchableOpacity
+            onPress={async () => {
+              await supabase.auth.signOut();
+              router.replace('/auth/login');
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: '#334155'
+            }}
+          >
+            <MaterialIcons name="logout" size={22} color="white" style={{ marginRight: 10 }} />
+            <Text style={{ color: 'white' }}>Cerrar sesión</Text>
+          </TouchableOpacity>
 
         </View>
       )}
@@ -186,15 +238,21 @@ const Tag = ({ text }: any) => (
   </View>
 );
 
-// 📋 OPCIONES DEL MENÚ CON ICONO
-const MenuItem = ({ icon, text }: any) => (
-  <TouchableOpacity style={{
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#334155'
-  }}>
+// 🔥 MENU ITEM CORREGIDO
+const MenuItem = ({ icon, text, route, closeMenu }: any) => (
+  <TouchableOpacity
+    onPress={() => {
+      closeMenu();
+      router.push(route);
+    }}
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#334155'
+    }}
+  >
     <MaterialIcons name={icon} size={22} color="white" style={{ marginRight: 10 }} />
     <Text style={{ color: 'white' }}>{text}</Text>
   </TouchableOpacity>

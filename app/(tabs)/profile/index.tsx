@@ -43,7 +43,6 @@ export default function Profile() {
     }
   };
 
-  // 🔄 LOADING
   if (loading) {
     return (
       <View style={{
@@ -63,20 +62,62 @@ export default function Profile() {
       {/* 🔵 HEADER */}
       <View style={{
         alignItems: 'center',
-        padding: 20,
+        paddingTop: 40,
+        paddingBottom: 25,
         backgroundColor: '#1e3a5f',
-        borderBottomLeftRadius: 25,
-        borderBottomRightRadius: 25
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30
       }}>
+
+        {/* 🔙 BOTÓN BONITO */}
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            position: 'absolute',
+            top: 40,
+            left: 20,
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            width: 55,
+            height: 55,
+            borderRadius: 30,
+            justifyContent: 'center',
+            alignItems: 'center',
+
+            // sombra iOS
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+
+            // sombra Android
+            elevation: 6
+          }}
+        >
+          <Text style={{
+            fontSize: 26,
+            color: 'white',
+            fontWeight: 'bold'
+          }}>
+            ←
+          </Text>
+        </TouchableOpacity>
+
         <Image
           source={require('../../logo.png')}
-          style={{ width: 80, height: 80, borderRadius: 40 }}
+          style={{
+            width: 90,
+            height: 90,
+            borderRadius: 50,
+            borderWidth: 2,
+            borderColor: 'white'
+          }}
         />
 
         <Text style={{
           color: 'white',
-          fontSize: 26,
-          marginTop: 10
+          fontSize: 28,
+          marginTop: 10,
+          fontWeight: 'bold'
         }}>
           Mi Perfil
         </Text>
@@ -89,13 +130,22 @@ export default function Profile() {
         padding: 15,
         borderRadius: 20
       }}>
-        <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>
+        <Text style={{
+          textAlign: 'center',
+          fontWeight: 'bold',
+          fontSize: 16
+        }}>
           {user?.email || "Sin usuario"}
         </Text>
       </View>
 
       {/* 🐶 MASCOTAS */}
-      <Text style={{ color: 'white', marginLeft: 20 }}>
+      <Text style={{
+        color: 'white',
+        marginLeft: 20,
+        fontSize: 16,
+        fontWeight: 'bold'
+      }}>
         Tus mascotas:
       </Text>
 
@@ -118,7 +168,6 @@ export default function Profile() {
           }}
         >
 
-          {/* 🐕 IMAGEN REAL */}
           {pet.image_url ? (
             <Image
               source={{ uri: pet.image_url }}
@@ -140,7 +189,7 @@ export default function Profile() {
               alignItems: 'center',
               marginBottom: 8
             }}>
-              <Text style={{ color: 'white' }}>🐶</Text>
+              <Text style={{ color: 'white', fontSize: 20 }}>🐶</Text>
             </View>
           )}
 

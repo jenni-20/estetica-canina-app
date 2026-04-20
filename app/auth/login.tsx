@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'; // 👈 NUEVO
 import { useRouter } from 'expo-router';
 import React, { useState } from "react";
 import {
@@ -15,6 +16,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // 👈 NUEVO
 
   const handleLogin = async () => {
   // 1. Primero inicias sesión en Auth
@@ -75,14 +77,32 @@ export default function Login() {
       />
 
       <Text style={styles.label}>Contraseña:</Text>
-      <TextInput
-        placeholder="********"
-        placeholderTextColor="#ccc"
-        style={styles.input}
-        secureTextEntry={true}
-        value={password}
-        onChangeText={setPassword}
-      />
+
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          placeholder="********"
+          placeholderTextColor="#ccc"
+          style={styles.input}
+          secureTextEntry={!showPassword} // 👈 CAMBIO
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity
+          onPress={() => setShowPassword(!showPassword)}
+          style={{
+            position: 'absolute',
+            right: 10,
+            top: 12,
+          }}
+        >
+          <Ionicons
+            name={showPassword ? 'eye-off' : 'eye'}
+            size={22}
+            color="white"
+          />
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity onPress={handleLogin} style={styles.btn}>
         <Text style={styles.btnText}>Iniciar Sesión</Text>

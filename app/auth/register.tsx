@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'; // 👈 NUEVO
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -18,6 +19,7 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // 👈 NUEVO
 
   // 🔥 REGISTRO
   const handleRegister = async () => {
@@ -89,13 +91,31 @@ export default function Register() {
 
       {/* PASSWORD */}
       <Text style={styles.label}>Contraseña:</Text>
-      <TextInput
-        placeholder="Coloca tu contraseña"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        style={styles.input}
-        onChangeText={setPassword}
-      />
+
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          placeholder="Coloca tu contraseña"
+          placeholderTextColor="#ccc"
+          secureTextEntry={!showPassword} // 👈 CAMBIO
+          style={styles.input}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity
+          onPress={() => setShowPassword(!showPassword)}
+          style={{
+            position: 'absolute',
+            right: 10,
+            top: 12,
+          }}
+        >
+          <Ionicons
+            name={showPassword ? 'eye-off' : 'eye'}
+            size={22}
+            color="white"
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* BOTÓN */}
       <TouchableOpacity onPress={handleRegister} style={styles.btn}>

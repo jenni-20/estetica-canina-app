@@ -3,53 +3,55 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Image,
-  ImageStyle,
   ScrollView,
+  StyleSheet,
   Text,
-  TextStyle,
   TouchableOpacity,
-  View,
-  ViewStyle
+  View
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
+
   const [menuVisible, setMenuVisible] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-    };
-    getUser();
-  }, []);
-
-  //estado para mascotas
   const [pets, setPets] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
+
+  const [selectedQuote, setSelectedQuote] = useState<any>(null);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const [newDate, setNewDate] = useState(new Date().toISOString());
 
   useEffect(() => {
-    const getUserAndPets = async () => {
-      const { data } = await supabase.auth.getUser();
-      const currentUser = data.user;
-      setUser(currentUser);
-
-      if (currentUser) {
-        const { data: petsData, error } = await supabase
-          .from('pets')
-          .select('*')
-          .eq('owner_id', currentUser.id);
-
-        if (error) {
-          console.error(error);
-        } else {
-          setPets(petsData);
-        }
-      }
-    };
-
-    getUserAndPets();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    const { data } = await supabase.auth.getUser();
+    const currentUser = data.user;
+    setUser(currentUser);
+
+    if (!currentUser) return;
+
+    const { data: petsData } = await supabase
+      .from('pets')
+      .select('*')
+      .eq('owner_id', currentUser.id);
+
+    setPets(petsData || []);
+
+    const { data: quotesData } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('client_id', currentUser.id);
+
+    setQuotes(quotesData || []);
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -57,162 +59,224 @@ export default function Home() {
       <ScrollView style={{ flex: 1, backgroundColor: '#0f2a44' }}>
 
         {/* HEADER */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: 15,
-          backgroundColor: '#1e3a5f',
-          borderBottomLeftRadius: 20,
-          borderBottomRightRadius: 20
-        }}>
-
+        <View style={styles.header}>
           <TouchableOpacity onPress={() => setMenuVisible(true)}>
             <MaterialIcons name="menu" size={30} color="white" />
           </TouchableOpacity>
 
           <Image
             source={require('./logo.png')}
-            style={{ width: 70, height: 70, borderRadius: 35 }}
+            style={styles.logo}
           />
 
           <View style={{ width: 28 }} />
         </View>
 
         {/* BIENVENIDA */}
-        <Text style={{
-          color: 'white',
-          fontSize: 28,
-          textAlign: 'center',
-          marginTop: 10
-        }}>
+        <Text style={styles.title}>
           Bienvenid@
         </Text>
 
         {/* USUARIO */}
-        <View style={{
-          backgroundColor: '#e5e7eb',
-          marginHorizontal: 20,
-          padding: 12,
-          borderRadius: 20,
-          marginVertical: 10
-        }}>
+        <View style={styles.userBox}>
           <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>
             👤 {user?.email || "Cargando..."}
           </Text>
         </View>
 
         {/* MASCOTAS */}
-        <Text style={{ color: 'white', marginLeft: 20, marginBottom: 10, fontWeight: 'bold' }}>
-          Tus mascotas:
-        </Text>
+        <Text style={styles.sectionTitle}>Tus mascotas:</Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
+        <ScrollView horizontal style={{ paddingLeft: 20 }}>
           {pets.map((pet) => (
             <TouchableOpacity
               key={pet.id}
-              style={petCard}
-              onPress={() => router.push({ pathname: "/pets/[id]", params: { id: pet.id } })}
+              style={styles.petCard}
             >
-              {/* Contenedor de imagen */}
-              <View style={imageContainer}>
-                <Image
-                  source={{ uri: pet.image_url || "https://via.placeholder.com/150" }}
-                  style={petImage}
-                  resizeMode="cover"
-                />
-
-                {/* Capa oscura con el nombre (Overlay) */}
-                <View style={petInfoOverlay}>
-                  <Text style={petName}>{pet.name}</Text>
-                  <Text style={petDesc}>{pet.species || "Mascota"}</Text>
-                </View>
-              </View>
+              <Image
+                source={{ uri: pet.image_url }}
+                style={styles.petImage}
+              />
+              <Text style={{ color: 'white' }}>{pet.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
+        {/* CITAS */}
+        <Text style={styles.sectionTitle}>Citas próximas:</Text>
 
-        {/* VETERINARIAS */}
-        <Text style={{ color: 'white', marginLeft: 20, marginTop: 15 }}>
-          Veterinarias cerca de ti:
-        </Text>
+        {quotes.map((q) => (
+          <View key={q.id} style={styles.card}>
+            <Text style={{ color: 'white' }}>
+              📅 {new Date(q.date).toLocaleDateString()}
+            </Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
-          <View style={vetCard}>
-            <Text style={vetTitle}>Animal Pet Care</Text>
-            <Text style={vetInfo}>⭐ 4.2 - 1.3 km</Text>
+            <Text style={{ color: 'white' }}>
+              Estado: {q.status}
+            </Text>
+
             <View style={{ flexDirection: 'row', marginTop: 10 }}>
-              <Tag text="Baño" />
-              <Tag text="Uñas" />
-              <Tag text="Dientes" />
+              <TouchableOpacity
+                style={styles.btnBlue}
+                onPress={() => {
+                  setSelectedQuote(q);
+                  setShowEditModal(true);
+                }}
+              >
+                <Text style={{ color: 'white' }}>Reprogramar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.btnRed}
+                onPress={() => {
+                  setSelectedQuote(q);
+                  setShowDeleteModal(true);
+                }}
+              >
+                <Text style={{ color: 'white' }}>Cancelar</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
+        ))}
 
       </ScrollView>
 
-      {/* MENÚ */}
+      {/* MENU */}
       {menuVisible && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: 260,
-          height: '100%',
-          backgroundColor: '#1e3a5f',
-          padding: 20
-        }}>
+        <View style={styles.menu}>
 
-          <TouchableOpacity onPress={() => setMenuVisible(false)}>
+          <TouchableOpacity 
+            onPress={() => setMenuVisible(false)}
+            style={{ marginTop: 40 }}
+          >
             <MaterialIcons name="close" size={25} color="white" />
           </TouchableOpacity>
 
-          <Text style={{ color: 'white', fontSize: 22, marginVertical: 15 }}>
-            Menu
-          </Text>
-
-          {/* 🔥 BOTONES FUNCIONALES CORREGIDOS */}
-          <MenuItem
-            icon="event"
-            text="Agenda una cita"
-            route="/(tabs)/quotes/CreateQuote"
-            closeMenu={() => setMenuVisible(false)}
-          />
-
-          <MenuItem
-            icon="pets"
-            text="Registra una mascota"
-            route="/(tabs)/pets/CreatePet"
-            closeMenu={() => setMenuVisible(false)}
-          />
-
-          <MenuItem
-            icon="person"
-            text="Ver perfil"
-            route="/(tabs)/profile"
-
-            closeMenu={() => setMenuVisible(false)}
-          />
+          <View style={{ marginTop: 30 }}>
+            <MenuItem icon="event" text="Agenda una cita" route="/(tabs)/quotes/CreateQuote" closeMenu={() => setMenuVisible(false)} />
+            <MenuItem icon="pets" text="Registra una mascota" route="/(tabs)/pets/CreatePet" closeMenu={() => setMenuVisible(false)} />
+            <MenuItem icon="person" text="Ver perfil" route="/(tabs)/profile" closeMenu={() => setMenuVisible(false)} />
+          </View>
 
           {/* 🔥 CERRAR SESIÓN */}
-          <TouchableOpacity
-            onPress={async () => {
-              await supabase.auth.signOut();
-              router.replace('/auth/login');
-            }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: 12,
-              borderBottomWidth: 1,
-              borderBottomColor: '#334155'
-            }}
-          >
-            <MaterialIcons name="logout" size={22} color="white" style={{ marginRight: 10 }} />
-            <Text style={{ color: 'white' }}>Cerrar sesión</Text>
-          </TouchableOpacity>
+          <View style={{ flex: 1, justifyContent: 'flex-end', marginBottom: 40 }}>
+            <TouchableOpacity
+              onPress={async () => {
+                await supabase.auth.signOut();
+                router.replace('/auth/login');
+              }}
+              style={styles.logout}
+            >
+              <MaterialIcons name="logout" size={22} color="white" />
+              <Text style={styles.logoutText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          </View>
 
+        </View>
+      )}
+
+      {/* MODAL ELIMINAR */}
+      {showDeleteModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>¿Cancelar cita?</Text>
+
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity
+                style={styles.btnBlue}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={{ color: 'white' }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.btnGreen}
+                onPress={async () => {
+                  await supabase.from('quotes').delete().eq('id', selectedQuote.id);
+                  setShowDeleteModal(false);
+                  setShowSuccessModal(true);
+                  loadData();
+                }}
+              >
+                <Text style={{ color: 'white' }}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* MODAL EDITAR (DISEÑO BONITO) */}
+      {showEditModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.editBox}>
+
+            <Text style={styles.editTitle}>
+              Selecciona los datos a cambiar
+            </Text>
+
+            <Text style={styles.label}>Fecha para la cita:</Text>
+
+            <TouchableOpacity style={styles.input}>
+              <Text style={{ color: '#cbd5e1' }}>
+                {new Date(newDate).toLocaleDateString()}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Servicios a realizar:</Text>
+            <View style={styles.input} />
+
+            <View style={{ flexDirection: 'row', marginTop: 15 }}>
+              <TouchableOpacity
+                style={styles.btnBlue}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Text style={{ color: 'white' }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.btnGreen}
+                onPress={async () => {
+                  await supabase
+                    .from('quotes')
+                    .update({ date: newDate })
+                    .eq('id', selectedQuote.id);
+
+                  setShowEditModal(false);
+                  setShowSuccessModal(true);
+                  loadData();
+                }}
+              >
+                <Text style={{ color: 'white' }}>Guardar cambios</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </View>
+      )}
+
+      {/* MODAL EXITO */}
+      {showSuccessModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.successBox}>
+
+            <Text style={styles.successTitle}>
+              Cita actualizada con éxito!!
+            </Text>
+
+            <Text style={styles.successText}>
+              Puedes ver tus citas pendientes en tu perfil
+            </Text>
+
+            <TouchableOpacity
+              style={styles.successBtn}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={styles.successBtnText}>
+                Aceptar
+              </Text>
+            </TouchableOpacity>
+
+          </View>
         </View>
       )}
 
@@ -220,95 +284,177 @@ export default function Home() {
   );
 }
 
-// 🐶 ESTILOS DE MASCOTAS ACTUALIZADOS
-const petCard: ViewStyle = {
-  width: 160,
-  height: 140, // Altura fija para que todas se vean iguales
-  marginRight: 15,
-  borderRadius: 20,
-  overflow: 'hidden', // Crucial para que la imagen no se salga de las esquinas
-  backgroundColor: '#1e3a5f',
-  elevation: 5,
-};
+/* ESTILOS */
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 15,
+    backgroundColor: '#1e3a5f'
+  },
 
-const imageContainer: ViewStyle = {
-  width: '100%',
-  height: '100%',
-  position: 'relative',
-};
+  logo: {
+    width: 70,
+    height: 70,
+    borderRadius: 35
+  },
 
-const petImage: ImageStyle = {
-  width: '100%',
-  height: '100%',
-};
+  title: {
+    color: 'white',
+    fontSize: 28,
+    textAlign: 'center'
+  },
 
-const petInfoOverlay: ViewStyle = {
-  position: 'absolute',
-  bottom: 0,
-  width: '100%',
-  backgroundColor: 'rgba(0, 0, 0, 0.6)', // Fondo negro translúcido
-  paddingVertical: 8,
-  paddingHorizontal: 12,
-};
+  userBox: {
+    backgroundColor: '#e5e7eb',
+    margin: 20,
+    padding: 10,
+    borderRadius: 20
+  },
 
-const petName: TextStyle = {
-  color: 'white',
-  fontSize: 15,
-  fontWeight: 'bold',
-};
+  sectionTitle: {
+    color: 'white',
+    marginLeft: 20
+  },
 
-const petDesc: TextStyle = {
-  color: '#B0C4DE',
-  fontSize: 11,
-};
+  petCard: {
+    marginRight: 10
+  },
 
-// 🏥 VETERINARIAS
-const vetCard: ViewStyle = {
-  width: 220,
-  backgroundColor: '#1e3a5f',
-  borderRadius: 20,
-  padding: 12,
-  marginRight: 12
-};
+  petImage: {
+    width: 100,
+    height: 100
+  },
 
-const vetTitle: TextStyle = {
-  color: 'white',
-  fontWeight: 'bold'
-};
+  card: {
+    backgroundColor: '#1e3a5f',
+    margin: 20,
+    padding: 15,
+    borderRadius: 20
+  },
 
-const vetInfo: TextStyle = {
-  color: '#ccc'
-};
-
-// 🏷️ TAG
-const Tag = ({ text }: any) => (
-  <View style={{
-    backgroundColor: '#334155',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+  btnBlue: {
+    backgroundColor: '#3b82f6',
+    padding: 10,
     borderRadius: 10,
     marginRight: 5
-  }}>
-    <Text style={{ color: 'white', fontSize: 12 }}>{text}</Text>
-  </View>
-);
+  },
 
-// 🔥 MENU ITEM CORREGIDO
+  btnRed: {
+    backgroundColor: '#b91c1c',
+    padding: 10,
+    borderRadius: 10
+  },
+
+  btnGreen: {
+    backgroundColor: '#166534',
+    padding: 10,
+    borderRadius: 10,
+    marginLeft: 5
+  },
+
+  menu: {
+    position: 'absolute',
+    width: 260,
+    height: '100%',
+    backgroundColor: '#1e3a5f',
+    padding: 20
+  },
+
+  logout: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+
+  logoutText: {
+    color: 'white',
+    marginLeft: 10
+  },
+
+  modalOverlay: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#000000aa',
+    justifyContent: 'center'
+  },
+
+  modal: {
+    backgroundColor: '#cbd5e1',
+    margin: 20,
+    padding: 20,
+    borderRadius: 20
+  },
+
+  modalTitle: {
+    fontWeight: 'bold',
+    marginBottom: 10
+  },
+
+  editBox: {
+    backgroundColor: '#94a3b8',
+    margin: 20,
+    padding: 20,
+    borderRadius: 20
+  },
+
+  editTitle: {
+    fontSize: 20,
+    textAlign: 'center',
+    marginBottom: 10
+  },
+
+  label: {
+    marginTop: 10
+  },
+
+  input: {
+    backgroundColor: '#64748b',
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 5
+  },
+
+  successBox: {
+    backgroundColor: '#cbd5e1',
+    margin: 20,
+    padding: 20,
+    borderRadius: 20,
+    alignItems: 'center'
+  },
+
+  successTitle: {
+    fontSize: 22,
+    fontWeight: 'bold'
+  },
+
+  successText: {
+    textAlign: 'center',
+    marginVertical: 10
+  },
+
+  successBtn: {
+    backgroundColor: '#475569',
+    padding: 10,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center'
+  },
+
+  successBtnText: {
+    color: 'white'
+  }
+});
+
 const MenuItem = ({ icon, text, route, closeMenu }: any) => (
   <TouchableOpacity
     onPress={() => {
       closeMenu();
       router.push(route);
     }}
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: '#334155'
-    }}
+    style={{ flexDirection: 'row', paddingVertical: 10 }}
   >
-    <MaterialIcons name={icon} size={22} color="white" style={{ marginRight: 10 }} />
-    <Text style={{ color: 'white' }}>{text}</Text>
+    <MaterialIcons name={icon} size={22} color="white" />
+    <Text style={{ color: 'white', marginLeft: 10 }}>{text}</Text>
   </TouchableOpacity>
 );

@@ -31,7 +31,6 @@ LocaleConfig.locales['es'] = {
   ],
   today: 'Hoy'
 };
-
 LocaleConfig.defaultLocale = 'es';
 
 export default function CreateQuote() {
@@ -55,12 +54,14 @@ export default function CreateQuote() {
     loadServices();
   }, []);
 
+  // 🔥 CARGAR SERVICIOS
   const loadServices = async () => {
     const { data, error } = await supabase
       .from('services')
       .select('*');
 
     if (error) {
+      console.log(error);
       alert("Error cargando servicios");
       return;
     }
@@ -68,6 +69,7 @@ export default function CreateQuote() {
     setServices(data || []);
   };
 
+  // 🔥 SELECCIONAR SERVICIO
   const toggleService = (id: string) => {
     if (selectedServices.includes(id)) {
       setSelectedServices(selectedServices.filter(s => s !== id));
@@ -81,6 +83,7 @@ export default function CreateQuote() {
     return `${day}/${month}/${year}`;
   };
 
+  // 🔥 GUARDAR CITA (YA CORREGIDO)
   const saveQuote = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
     const user = sessionData.session?.user;
@@ -91,14 +94,22 @@ export default function CreateQuote() {
     }
 
     for (const serviceId of selectedServices) {
-      await supabase.from('quotes').insert([
+      const { error } = await supabase.from('quotes').insert([
         {
           service_id: serviceId,
-          date: isoDate,
+          date: isoDate,          // ✅ CORREGIDO
           client_id: user?.id,
-          status: "pending"
+          status: "PENDING",      // ✅ CORREGIDO
+          pet_id: null,
+          establishment_id: null
         }
       ]);
+
+      if (error) {
+        console.log(error);
+        alert("Error al guardar cita: " + error.message);
+        return;
+      }
     }
 
     setShowSuccess(true);
@@ -117,44 +128,25 @@ export default function CreateQuote() {
       </Text>
 
       <Text style={styles.label}>Nombre del dueño:</Text>
-      <TextInput
-        style={styles.input}
-        value={owner}
-        onChangeText={setOwner}
-        placeholderTextColor="#ccc"
-      />
+      <TextInput style={styles.input} value={owner} onChangeText={setOwner} />
 
       <Text style={styles.label}>Teléfono:</Text>
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        placeholderTextColor="#ccc"
-      />
+      <TextInput style={styles.input} value={phone} onChangeText={setPhone} />
 
       <Text style={styles.label}>Nombre de la mascota:</Text>
-      <TextInput
-        style={styles.input}
-        value={petName}
-        onChangeText={setPetName}
-        placeholderTextColor="#ccc"
-      />
+      <TextInput style={styles.input} value={petName} onChangeText={setPetName} />
 
+      {/* 📅 FECHA */}
       <Text style={styles.label}>Fecha:</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setShowCalendar(true)}
-      >
+      <TouchableOpacity style={styles.input} onPress={() => setShowCalendar(true)}>
         <Text style={{ color: '#ccc' }}>
           {date || "DD/MM/AAAA"}
         </Text>
       </TouchableOpacity>
 
+      {/* 🧼 SERVICIOS */}
       <Text style={styles.label}>Servicios:</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setShowServices(true)}
-      >
+      <TouchableOpacity style={styles.input} onPress={() => setShowServices(true)}>
         <Text style={{ color: '#ccc' }}>
           {selectedServices.length > 0
             ? `${selectedServices.length} seleccionados`
@@ -166,6 +158,7 @@ export default function CreateQuote() {
         <Text style={styles.btnText}>Agendar cita</Text>
       </TouchableOpacity>
 
+      {/* 📅 CALENDARIO */}
       <Modal visible={showCalendar} transparent>
         <View style={styles.modal}>
           <View style={styles.modalBox}>
@@ -180,6 +173,7 @@ export default function CreateQuote() {
         </View>
       </Modal>
 
+      {/* 🧼 SERVICIOS */}
       <Modal visible={showServices} transparent>
         <View style={styles.modal}>
           <View style={styles.modalBox}>
@@ -190,15 +184,17 @@ export default function CreateQuote() {
 
             <ScrollView>
               {services.map((s) => {
-                const selected = selectedServices.includes(s.id);
+                const selected = selectedServices.includes(String(s.id));
 
                 return (
                   <TouchableOpacity
                     key={s.id}
                     style={styles.serviceRow}
-                    onPress={() => toggleService(s.id)}
+                    onPress={() => toggleService(String(s.id))}
                   >
-                    <Text style={styles.serviceText}>{s.name}</Text>
+                    <Text style={styles.serviceText}>
+                      {s.name}
+                    </Text>
                     <Text>{selected ? "✔️" : "○"}</Text>
                   </TouchableOpacity>
                 );
@@ -216,6 +212,7 @@ export default function CreateQuote() {
         </View>
       </Modal>
 
+      {/* ✅ ÉXITO */}
       <Modal visible={showSuccess} transparent animationType="fade">
         <View style={styles.modal}>
           <View style={styles.successBox}>
@@ -224,19 +221,10 @@ export default function CreateQuote() {
               Cita guardada con éxito!!
             </Text>
 
-            <Text style={styles.successText}>
-              Puedes ver tus citas pendientes en tu perfil
-            </Text>
-
             <TouchableOpacity
               style={styles.successBtn}
               onPress={() => {
                 setShowSuccess(false);
-                setOwner("");
-                setPhone("");
-                setPetName("");
-                setDate("");
-                setSelectedServices([]);
                 router.replace('/(tabs)');
               }}
             >
@@ -266,13 +254,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginTop: 5,
-    color: '#ccc' // 🔥 AQUÍ ESTÁ EL CAMBIO
+    color: '#ccc'
   },
 
   btn: { backgroundColor: '#ccc', padding: 15, borderRadius: 10, marginTop: 20 },
   btnText: { textAlign: 'center', fontWeight: 'bold' },
 
-  modal: { flex: 1, justifyContent: 'center', backgroundColor: '#ccc' },
+  modal: { flex: 1, justifyContent: 'center', backgroundColor: '#000000aa' },
   modalBox: { backgroundColor: 'white', margin: 20, borderRadius: 15, padding: 20, maxHeight: 400 },
   modalTitle: { textAlign: 'center', marginBottom: 10 },
 
@@ -305,13 +293,7 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
     marginBottom: 10
-  },
-
-  successText: {
-    textAlign: 'center',
-    marginBottom: 15
   },
 
   successBtn: {

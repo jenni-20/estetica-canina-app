@@ -1,17 +1,20 @@
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
+import { Buffer } from "buffer";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
+
+global.Buffer = global.Buffer || Buffer;
 
 export default function CreatePet() {
   const router = useRouter();
@@ -52,7 +55,7 @@ export default function CreatePet() {
   // 🔥 SELECCIONAR IMAGEN
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ← vuelve a usar esta opción
       quality: 1,
     });
 
@@ -63,35 +66,37 @@ export default function CreatePet() {
 
   // 🔥 SUBIR IMAGEN
   const uploadImage = async () => {
-    if (!image) return null;
+  if (!image) return null;
 
-    try {
-      const fileName = `pet_${Date.now()}.jpg`;
+  try {
+    const fileName = `pet_${Date.now()}.jpg`;
 
-      const response = await fetch(image);
-      const blob = await response.blob();
+    // 🔥 convertir URI a blob (forma correcta en Expo)
+    const response = await fetch(image);
+    const blob = await response.blob();
 
-      const { error } = await supabase.storage
-        .from("pets")
-        .upload(fileName, blob, {
-          contentType: "image/jpeg",
-        });
+    // subir a Supabase
+    const { error } = await supabase.storage
+      .from("pets")
+      .upload(fileName, blob, {
+        contentType: "image/jpeg",
+      });
 
-      if (error) {
-        console.log(error);
-        return null;
-      }
-
-      const { data } = supabase.storage
-        .from("pets")
-        .getPublicUrl(fileName);
-
-      return data.publicUrl;
-    } catch (err) {
-      console.log(err);
+    if (error) {
+      console.log("Error al subir:", error);
       return null;
     }
-  };
+
+    const { data } = supabase.storage
+      .from("pets")
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  } catch (err) {
+    console.log("Error en uploadImage:", err);
+    return null;
+  }
+};
 
   // 🔥 GUARDAR
   const handleSave = async () => {

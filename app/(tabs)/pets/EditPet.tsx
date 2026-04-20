@@ -1,28 +1,59 @@
 import { supabase } from "@/lib/supabase";
 import { MaterialIcons } from "@expo/vector-icons";
+import { decode } from 'base64-arraybuffer'; // ✅ AÑADIR ESTO (instala con: npm install base64-arraybuffer)
+import * as FileSystem from 'expo-file-system/legacy'; // ✅ AÑADIR ESTO
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+// Cambia SafeAreaView de 'react-native' a 'react-native-safe-area-context' si lo usas
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator, // ✅ AÑADIR ESTO para el estado de carga
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
-export default function EditPet() {
+// ✅ IMPORT CORRECTO (FUERA DEL COMPONENTE ESTÁ BIEN)
+const defaultImage = require("../../../assets/images/image.png");
 
+export default function EditPet() {
+  const { id } = useLocalSearchParams();
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [image, setImage] = useState<string | null>(null);
-  const [vaccines, setVaccines] = useState("Rabia\nParvovirus\nLeptospirosis");
-  const [allergies, setAllergies] = useState<string[]>([]);
+  const [vaccines, setVaccines] = useState("");
+  const [allergies, setAllergies] = useState<string[]>([]); // Inicializado como array vacío ✅
   const [newAllergy, setNewAllergy] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const loadPetData = async () => {
+      if (!id) return;
+      const { data, error } = await supabase
+        .from("pets")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (data) {
+        setCurrentImage(data.image_url);
+        setVaccines(data.vaccines || "");
+        // ✅ IMPORTANTE: Si data.allergies es null, usamos un array vacío []
+        setAllergies(Array.isArray(data.allergies) ? data.allergies : []);
+      }
+    };
+    loadPetData();
+  }, [id]);
 
   // 📸 SELECCIONAR FOTO
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1
+      mediaTypes: ['images'], // ✅ CAMBIO: Usa este formato para evitar el Warning
+      quality: 0.5, // ✅ RECOMENDACIÓN: 0.5 hace que la subida sea más ligera y falle menos
     });
 
     if (!result.canceled) {
@@ -30,132 +61,169 @@ export default function EditPet() {
     }
   };
 
-  // ☁️ SUBIR IMAGEN
+  // ☁️ SUBIR IMAGEN (CONVERSIÓN MEJORADA)
   const uploadImage = async () => {
-    if (!image) return null;
+  if (!image) return null;
+  try {
+    const fileName = `pet_${id}_${Date.now()}.jpg`;
+    
+    // Al haber cambiado el import a 'expo-file-system/legacy', 
+    // esta línea ya no arrojará el error de "Method deprecated"
+    const base64 = await FileSystem.readAsStringAsync(image, {
+      encoding: 'base64', 
+    });
 
-    const fileName = `pet_${Date.now()}.jpg`;
-
-    const response = await fetch(image);
-    const blob = await response.blob();
-
-    const { error } = await supabase.storage
+    const { data, error } = await supabase.storage
       .from("pets")
-      .upload(fileName, blob, {
-        contentType: "image/jpeg"
+      .upload(fileName, decode(base64), {
+        contentType: "image/jpeg",
       });
 
-    if (error) {
-      console.log(error);
-      return null;
-    }
+    if (error) throw error;
 
-    const { data } = supabase.storage
-      .from("pets")
-      .getPublicUrl(fileName);
+    const { data: urlData } = supabase.storage.from("pets").getPublicUrl(fileName);
+    return urlData.publicUrl;
+  } catch (err) {
+    console.error("Error en subida:", err);
+    return null;
+  }
+};
 
-    return data.publicUrl;
-  };
-
-  // ➕ AGREGAR ALERGIA
   const addAllergy = () => {
-    if (!newAllergy) return;
-
-    setAllergies([...allergies, newAllergy]);
+    if (!newAllergy.trim()) return;
+    setAllergies([...allergies, newAllergy.trim()]);
     setNewAllergy("");
   };
 
   // 💾 GUARDAR CAMBIOS
   const handleSave = async () => {
-    const imageUrl = await uploadImage();
+    if (!id) {
+      Alert.alert("Error", "No se encontró el ID de la mascota");
+      return;
+    }
 
-    console.log("Imagen:", imageUrl);
-    console.log("Vacunas:", vaccines);
-    console.log("Alergias:", allergies);
+    setLoading(true);
+    try {
+      let imageUrl = currentImage;
 
-    alert("Cambios guardados ✅");
+      if (image) {
+        const uploadedUrl = await uploadImage();
+        if (uploadedUrl) {
+          imageUrl = uploadedUrl;
+        } else {
+          Alert.alert("Error", "No se pudo subir la imagen, revisa tu conexión.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { error } = await supabase
+        .from("pets")
+        .update({
+          image_url: imageUrl,
+          vaccines: vaccines,
+          allergies: allergies
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      Alert.alert("Éxito", "Cambios guardados ✅", [
+        { text: "OK", onPress: () => router.back() }
+      ]);
+
+    } catch (err: any) {
+      console.log("Error general:", err);
+      Alert.alert("Error", err.message || "Error desconocido");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <View style={styles.container}>
-
+    <ScrollView style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <MaterialIcons name="arrow-back" size={28} color="white" />
+        <TouchableOpacity onPress={() => router.back()}>
+          <MaterialIcons name="arrow-back" size={28} color="white" />
+        </TouchableOpacity>
         <Image source={require("../../logo.png")} style={styles.logo} />
       </View>
 
       {/* NOMBRE */}
       <View style={styles.nameBox}>
-        <Text style={styles.name}>Nombre_de_Mascota</Text>
+        <Text style={styles.name}>Editando Mascota</Text>
       </View>
 
       {/* FOTO */}
       <Text style={styles.label}>Actualizar foto:</Text>
-
       <TouchableOpacity style={styles.imageBox} onPress={pickImage}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.image} />
-        ) : (
-          <Image source={{ uri: "https://placedog.net/400" }} style={styles.image} />
-        )}
-
+        <Image
+          source={
+            image ? { uri: image } : currentImage ? { uri: currentImage } : defaultImage
+          }
+          style={styles.image}
+        />
         <View style={styles.camera}>
           <MaterialIcons name="add-a-photo" size={28} color="white" />
         </View>
       </TouchableOpacity>
 
-      {/* ALERGIAS */}
+      {/* FILA DE DATOS */}
       <View style={styles.row}>
-
         <View style={styles.box}>
-          <Text style={styles.label}>Agregar Alergias:</Text>
-
+          <Text style={styles.label}>Alergias:</Text>
           <View style={styles.smallBox}>
-            <TextInput
-              placeholder="Nueva alergia"
-              placeholderTextColor="#ccc"
-              style={{ color: "white", marginBottom: 10 }}
-              value={newAllergy}
-              onChangeText={setNewAllergy}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                placeholder="Nueva"
+                placeholderTextColor="#ccc"
+                style={{ color: "white", flex: 1 }}
+                value={newAllergy}
+                onChangeText={setNewAllergy}
+              />
+              <TouchableOpacity onPress={addAllergy}>
+                <MaterialIcons name="add-circle" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity onPress={addAllergy}>
-              <MaterialIcons name="add-circle" size={30} color="white" />
-            </TouchableOpacity>
-
-            {allergies.map((item, index) => (
-              <Text key={index} style={{ color: "white" }}>
+            {/* ✅ PROTECCIÓN EXTRA: Usamos allergies?.map o (allergies || []) */}
+            {allergies?.map((item, index) => (
+              <Text key={index} style={{ color: "white", fontSize: 12 }}>
                 • {item}
               </Text>
             ))}
           </View>
         </View>
 
-        {/* VACUNAS */}
         <View style={styles.box}>
-          <Text style={styles.label}>Actualizar vacunas:</Text>
-
+          <Text style={styles.label}>Vacunas:</Text>
           <View style={styles.smallBox}>
             <TextInput
               multiline
               value={vaccines}
               onChangeText={setVaccines}
-              style={{ color: "white", width: "100%" }}
+              style={{ color: "white", minHeight: 60 }}
             />
           </View>
         </View>
-
       </View>
 
-      {/* BOTÓN GUARDAR */}
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-        <Text style={{ color: "white", fontWeight: "bold" }}>
-          Guardar cambios
-        </Text>
+      {/* BOTÓN */}
+      <TouchableOpacity
+        style={[styles.saveBtn, loading && { opacity: 0.5 }]}
+        onPress={handleSave}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="white" /> // ✅ Muestra un círculo de carga
+        ) : (
+          <Text style={{ color: "white", fontWeight: "bold" }}>
+            Guardar cambios
+          </Text>
+        )}
       </TouchableOpacity>
-
-    </View>
+    </ScrollView>
   );
 }
 

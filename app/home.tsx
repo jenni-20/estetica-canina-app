@@ -25,6 +25,32 @@ export default function Home() {
     getUser();
   }, []);
 
+  //estado para mascotas
+  const [pets, setPets] = useState<any[]>([]);
+
+  useEffect(() => {
+    const getUserAndPets = async () => {
+      const { data } = await supabase.auth.getUser();
+      const currentUser = data.user;
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: petsData, error } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('owner_id', currentUser.id);
+
+        if (error) {
+          console.error(error);
+        } else {
+          setPets(petsData);
+        }
+      }
+    };
+
+    getUserAndPets();
+  }, []);
+
   return (
     <View style={{ flex: 1 }}>
 
@@ -77,23 +103,35 @@ export default function Home() {
         </View>
 
         {/* MASCOTAS */}
-        <Text style={{ color: 'white', marginLeft: 20 }}>
+        <Text style={{ color: 'white', marginLeft: 20, marginBottom: 10, fontWeight: 'bold' }}>
           Tus mascotas:
         </Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
-          <View style={petCard}>
-            <Image source={{ uri: 'https://placedog.net/500' }} style={petImage} />
-            <Text style={petName}>Charlie</Text>
-            <Text style={petDesc}>Pitbull</Text>
-          </View>
+          {pets.map((pet) => (
+            <TouchableOpacity
+              key={pet.id}
+              style={petCard}
+              onPress={() => router.push({ pathname: "/pets/[id]", params: { id: pet.id } })}
+            >
+              {/* Contenedor de imagen */}
+              <View style={imageContainer}>
+                <Image
+                  source={{ uri: pet.image_url || "https://via.placeholder.com/150" }}
+                  style={petImage}
+                  resizeMode="cover"
+                />
 
-          <View style={petCard}>
-            <Image source={{ uri: 'https://placekitten.com/200' }} style={petImage} />
-            <Text style={petName}>Roxy</Text>
-            <Text style={petDesc}>Gato</Text>
-          </View>
+                {/* Capa oscura con el nombre (Overlay) */}
+                <View style={petInfoOverlay}>
+                  <Text style={petName}>{pet.name}</Text>
+                  <Text style={petDesc}>{pet.species || "Mascota"}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
+
 
         {/* VETERINARIAS */}
         <Text style={{ color: 'white', marginLeft: 20, marginTop: 15 }}>
@@ -153,7 +191,7 @@ export default function Home() {
             icon="person"
             text="Ver perfil"
             route="/(tabs)/profile"
-            
+
             closeMenu={() => setMenuVisible(false)}
           />
 
@@ -182,29 +220,46 @@ export default function Home() {
   );
 }
 
-// 🐶 MASCOTAS
+// 🐶 ESTILOS DE MASCOTAS ACTUALIZADOS
 const petCard: ViewStyle = {
-  width: 150,
-  backgroundColor: '#1e3a5f',
+  width: 160,
+  height: 140, // Altura fija para que todas se vean iguales
+  marginRight: 15,
   borderRadius: 20,
-  marginRight: 12,
-  padding: 10
+  overflow: 'hidden', // Crucial para que la imagen no se salga de las esquinas
+  backgroundColor: '#1e3a5f',
+  elevation: 5,
+};
+
+const imageContainer: ViewStyle = {
+  width: '100%',
+  height: '100%',
+  position: 'relative',
 };
 
 const petImage: ImageStyle = {
   width: '100%',
-  height: 90,
-  borderRadius: 12
+  height: '100%',
+};
+
+const petInfoOverlay: ViewStyle = {
+  position: 'absolute',
+  bottom: 0,
+  width: '100%',
+  backgroundColor: 'rgba(0, 0, 0, 0.6)', // Fondo negro translúcido
+  paddingVertical: 8,
+  paddingHorizontal: 12,
 };
 
 const petName: TextStyle = {
   color: 'white',
-  marginTop: 5,
-  fontWeight: 'bold'
+  fontSize: 15,
+  fontWeight: 'bold',
 };
 
 const petDesc: TextStyle = {
-  color: '#ccc'
+  color: '#B0C4DE',
+  fontSize: 11,
 };
 
 // 🏥 VETERINARIAS

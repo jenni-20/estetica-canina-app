@@ -1,9 +1,7 @@
-import { Text, View } from "react-native";
+import Home from "@/app/home";
 
 export default function Pets() {
   return (
-    <View style={{ padding: 20 }}>
-      <Text>Pantalla de Mascotas 🐶</Text>
-    </View>
+      <Home/>
   );
 }

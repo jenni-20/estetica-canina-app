@@ -17,24 +17,40 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      alert("Completa todos los campos");
+  // 1. Primero inicias sesión en Auth
+  const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password: password,
+  });
+
+  if (authError) {
+    alert(authError.message);
+    return;
+  }
+
+  if (session) {
+    // 2. Buscas el rol usando maybeSingle para evitar el error PGRST116
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .maybeSingle(); // 🔥 Esto evita que la app truene si no hay fila
+
+    // Si el perfil no existe, es que el registro quedó a medias
+    if (!profile) {
+      alert("No se encontró un perfil para este usuario. Intenta registrarte de nuevo.");
+      // Opcional: podrías borrar al usuario de Auth aquí o mandarlo a Register
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
+    // 3. Si todo está bien, redireccionas según el rol
+    if (profile.role === 'PROVIDER') {
+      router.replace('/establishments/dashboard');
+    } else {
+      router.replace('/(tabs)'); // O tu ruta de cliente
     }
-
-    // 🔥 AQUÍ ESTÁ LA CORRECCIÓN
-    router.replace("/home");
-  };
+  }
+};
 
   return (
     <View style={styles.container}>

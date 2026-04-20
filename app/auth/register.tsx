@@ -157,7 +157,7 @@ export default function Register() {
         if (role === 'PROVIDER') {
           router.replace('/establishments/dashboard');
         } else {
-          router.replace('/auth/login');
+          router.replace('/home');
         }
       }
     } catch (error: any) {

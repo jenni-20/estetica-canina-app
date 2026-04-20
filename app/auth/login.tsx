@@ -49,7 +49,7 @@ export default function Login() {
     if (profile.role === 'PROVIDER') {
       router.replace('/establishments/dashboard');
     } else {
-      router.replace('/(tabs)'); // O tu ruta de cliente
+      router.replace('/home'); // O tu ruta de cliente
     }
   }
 };

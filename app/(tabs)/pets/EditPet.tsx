@@ -63,31 +63,32 @@ export default function EditPet() {
 
   // ☁️ SUBIR IMAGEN (CONVERSIÓN MEJORADA)
   const uploadImage = async () => {
-  if (!image) return null;
-  try {
-    const fileName = `pet_${id}_${Date.now()}.jpg`;
-    
-    // Al haber cambiado el import a 'expo-file-system/legacy', 
-    // esta línea ya no arrojará el error de "Method deprecated"
-    const base64 = await FileSystem.readAsStringAsync(image, {
-      encoding: 'base64', 
-    });
-
-    const { data, error } = await supabase.storage
-      .from("pets")
-      .upload(fileName, decode(base64), {
-        contentType: "image/jpeg",
+    if (!image) return null;
+    try {
+      // Usamos Date.now() para que la URL sea siempre única y evitemos el cache
+      const fileName = `pet_${id}_${Date.now()}.jpg`; 
+      
+      const base64 = await FileSystem.readAsStringAsync(image, {
+        encoding: FileSystem.EncodingType.Base64, 
       });
 
-    if (error) throw error;
+      const { data, error } = await supabase.storage
+        .from("pets")
+        .upload(fileName, decode(base64), {
+          contentType: "image/jpeg",
+          upsert: true, // 👈 IMPORTANTE: Esto permite sobrescribir/actualizar
+        });
 
-    const { data: urlData } = supabase.storage.from("pets").getPublicUrl(fileName);
-    return urlData.publicUrl;
-  } catch (err) {
-    console.error("Error en subida:", err);
-    return null;
-  }
-};
+      if (error) throw error;
+
+      // Obtenemos la nueva URL pública
+      const { data: urlData } = supabase.storage.from("pets").getPublicUrl(fileName);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error("Error en subida:", err);
+      return null;
+    }
+  };
 
   const addAllergy = () => {
     if (!newAllergy.trim()) return;

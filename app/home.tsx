@@ -92,6 +92,8 @@ export default function Home() {
             <TouchableOpacity
               key={pet.id}
               style={styles.petCard}
+              // 🔥 Agregamos la navegación aquí:
+              onPress={() => router.push(`/(tabs)/pets/${pet.id}`)}
             >
               <Image
                 source={{ uri: pet.image_url }}
@@ -145,7 +147,7 @@ export default function Home() {
       {menuVisible && (
         <View style={styles.menu}>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => setMenuVisible(false)}
             style={{ marginTop: 40 }}
           >

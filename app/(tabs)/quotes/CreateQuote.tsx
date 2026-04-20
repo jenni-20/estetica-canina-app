@@ -55,7 +55,6 @@ export default function CreateQuote() {
     loadServices();
   }, []);
 
-  // 🔥 CARGAR SERVICIOS
   const loadServices = async () => {
     const { data, error } = await supabase
       .from('services')
@@ -69,7 +68,6 @@ export default function CreateQuote() {
     setServices(data || []);
   };
 
-  // 🔥 SELECCIONAR SERVICIO
   const toggleService = (id: string) => {
     if (selectedServices.includes(id)) {
       setSelectedServices(selectedServices.filter(s => s !== id));
@@ -78,13 +76,11 @@ export default function CreateQuote() {
     }
   };
 
-  // 📅 FORMATO FECHA
   const formatDate = (dateString: string) => {
     const [year, month, day] = dateString.split("-");
     return `${day}/${month}/${year}`;
   };
 
-  // 💾 GUARDAR CITA
   const saveQuote = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
     const user = sessionData.session?.user;
@@ -111,7 +107,6 @@ export default function CreateQuote() {
   return (
     <View style={styles.container}>
 
-      {/* HEADER */}
       <View style={styles.header}>
         <Image source={require('../../logo.png')} style={styles.logo} />
       </View>
@@ -121,12 +116,12 @@ export default function CreateQuote() {
         Completa los siguientes campos correctamente:
       </Text>
 
-      {/* INPUTS */}
       <Text style={styles.label}>Nombre del dueño:</Text>
       <TextInput
         style={styles.input}
         value={owner}
         onChangeText={setOwner}
+        placeholderTextColor="#ccc"
       />
 
       <Text style={styles.label}>Teléfono:</Text>
@@ -134,6 +129,7 @@ export default function CreateQuote() {
         style={styles.input}
         value={phone}
         onChangeText={setPhone}
+        placeholderTextColor="#ccc"
       />
 
       <Text style={styles.label}>Nombre de la mascota:</Text>
@@ -141,9 +137,9 @@ export default function CreateQuote() {
         style={styles.input}
         value={petName}
         onChangeText={setPetName}
+        placeholderTextColor="#ccc"
       />
 
-      {/* FECHA */}
       <Text style={styles.label}>Fecha:</Text>
       <TouchableOpacity
         style={styles.input}
@@ -154,7 +150,6 @@ export default function CreateQuote() {
         </Text>
       </TouchableOpacity>
 
-      {/* SERVICIOS */}
       <Text style={styles.label}>Servicios:</Text>
       <TouchableOpacity
         style={styles.input}
@@ -167,12 +162,10 @@ export default function CreateQuote() {
         </Text>
       </TouchableOpacity>
 
-      {/* BOTÓN */}
       <TouchableOpacity style={styles.btn} onPress={saveQuote}>
         <Text style={styles.btnText}>Agendar cita</Text>
       </TouchableOpacity>
 
-      {/* 📅 CALENDARIO */}
       <Modal visible={showCalendar} transparent>
         <View style={styles.modal}>
           <View style={styles.modalBox}>
@@ -187,7 +180,6 @@ export default function CreateQuote() {
         </View>
       </Modal>
 
-      {/* 📋 SERVICIOS */}
       <Modal visible={showServices} transparent>
         <View style={styles.modal}>
           <View style={styles.modalBox}>
@@ -224,7 +216,6 @@ export default function CreateQuote() {
         </View>
       </Modal>
 
-      {/* 🎉 MODAL ÉXITO */}
       <Modal visible={showSuccess} transparent animationType="fade">
         <View style={styles.modal}>
           <View style={styles.successBox}>
@@ -241,15 +232,11 @@ export default function CreateQuote() {
               style={styles.successBtn}
               onPress={() => {
                 setShowSuccess(false);
-
-                // limpiar
                 setOwner("");
                 setPhone("");
                 setPetName("");
                 setDate("");
                 setSelectedServices([]);
-
-                // regresar a home
                 router.replace('/(tabs)');
               }}
             >
@@ -266,7 +253,6 @@ export default function CreateQuote() {
   );
 }
 
-// 🎨 ESTILOS
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f2a44', padding: 20 },
   header: { alignItems: 'center', marginTop: 20 },
@@ -274,11 +260,19 @@ const styles = StyleSheet.create({
   title: { color: 'white', fontSize: 30, textAlign: 'center' },
   subtitle: { color: '#ccc', textAlign: 'center' },
   label: { color: 'white', marginTop: 10 },
-  input: { backgroundColor: '#2c4a6e', padding: 12, borderRadius: 8, marginTop: 5 },
-  btn: { backgroundColor: '#9ca3af', padding: 15, borderRadius: 10, marginTop: 20 },
+
+  input: {
+    backgroundColor: '#2c4a6e',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 5,
+    color: '#ccc' // 🔥 AQUÍ ESTÁ EL CAMBIO
+  },
+
+  btn: { backgroundColor: '#ccc', padding: 15, borderRadius: 10, marginTop: 20 },
   btnText: { textAlign: 'center', fontWeight: 'bold' },
 
-  modal: { flex: 1, justifyContent: 'center', backgroundColor: '#000000aa' },
+  modal: { flex: 1, justifyContent: 'center', backgroundColor: '#ccc' },
   modalBox: { backgroundColor: 'white', margin: 20, borderRadius: 15, padding: 20, maxHeight: 400 },
   modalTitle: { textAlign: 'center', marginBottom: 10 },
 
@@ -289,6 +283,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#ccc'
   },
+
   serviceText: { color: '#1e3a5f' },
 
   btnSmall: {
@@ -306,16 +301,19 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center'
   },
+
   successTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 10
   },
+
   successText: {
     textAlign: 'center',
     marginBottom: 15
   },
+
   successBtn: {
     backgroundColor: '#1e3a5f',
     padding: 12,

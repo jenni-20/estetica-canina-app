@@ -250,7 +250,7 @@ export default function CreateQuote() {
                 setSelectedServices([]);
 
                 // regresar a home
-                router.replace('/(tabs)');
+                router.replace('/home');
               }}
             >
               <Text style={{ color: 'white', fontWeight: 'bold' }}>
